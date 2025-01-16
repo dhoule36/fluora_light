@@ -1,22 +1,27 @@
 import time
-import json
-from enum import Enum
-from operator import concat
-
-import base64
 import socket
 
-class ControlChoice(str, Enum):
-    a = "Brightness"
-    b = "Hue"
-    c = "Saturation"
-    d = "Power"
+color_dict = {"red": "0x3f578e",
+              "orange": "0x3f5a4f",
+              "green": "0x3e69a3",
+              "blue": "0x3eef80",
+              "purple": "0x3f3734",
+              "yellow": "0x360b67"
+              }
+
+modes_dict = {"manual": "2f697761614d6b567a4f66554d0000002c6969000000000200000000",
+              "scene": "2f697761614d6b567a4f66554d0000002c6969000000000100000000",
+              "auto": "2f697761614d6b567a4f66554d0000002c6969000000000000000000"}
+modes_presend = "2f666c756f7261446973636f76657279000000002c6969696969696969696969696900000000003100000039000000320000002e0000003100000036000000380000002e00000038000000360000002e0000003200000030"
+
+# ignores commands from manual when on auto, so need to figure out how to switch
 
 control_choice_dict = {"a": "Brightness",
                        "b": "Hue",
                        "c": "Saturation",
-                       "d": "Power"
-}
+                       "d": "Power",
+                       "e": "Mode"
+                       }
 
 control_hex_dict = {"Brightness": "2f557637614d46773550326c580000002c666900",
                     "Hue": "2f5468576e787336356c30736a0000002c666900",
@@ -73,17 +78,30 @@ def send_bytes(ip_address, port):
             return ((value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
 
         while True:
-            value_to_control_choice = input("Enter control (a) brightness, (b) hue, (c) saturation (d) power: ")
+            value_to_control_choice = input("Enter control (a) brightness, (b) hue, (c) saturation (d) power (e) mode: ")
             if value_to_control_choice in control_choice_dict:
                 value_to_control = control_choice_dict[value_to_control_choice]
-                chosen_hex = control_hex_dict[value_to_control]
-                if "Power" in value_to_control:
+                if "Mode" in value_to_control:
+                    auto_or_manual = input("(a) auto, (s) scene, or (m) manual")
+                    if "m" in auto_or_manual:
+                        sock.send(bytearray.fromhex(modes_presend))
+                        time.sleep(1)
+                        sock.send(bytearray.fromhex(modes_dict["manual"]))
+                    elif "s" in auto_or_manual:
+                        sock.send(bytearray.fromhex(modes_dict["scene"]))
+                    else:
+                        sock.send(bytearray.fromhex(modes_presend))
+                        time.sleep(1)
+                        sock.send(bytearray.fromhex(modes_dict["auto"]))
+                elif "Power" in value_to_control:
+                    chosen_hex = control_hex_dict[value_to_control]
                     on_or_off = input("on or off?")
                     concat_hex = chosen_hex
                     concat_hex += "1" if on_or_off == "on" else "0"
                     concat_hex += "00000000"
                     sock.send(bytearray.fromhex(concat_hex))
                 else:
+                    chosen_hex = control_hex_dict[value_to_control]
                     percentage_entered = input("percentage: ")
                     try:
                         percentage_entered = int(percentage_entered)
@@ -101,41 +119,6 @@ def send_bytes(ip_address, port):
                     except Exception as e:
                         print("must be an int")
 
-
-
-
-        # SATURATION
-        # 2f7936383755345a67796d736a0000002c666900XXYYYY0000000000
-        # val = "2f7936383755345a67796d736a0000002c666900" + hex(3932160)[2:] + "0000000000"
-        # sock.send(bytearray.fromhex(val))
-        # time.sleep(2)
-        # val = "2f7936383755345a67796d736a0000002c666900" + hex(4194304)[2:] + "0000000000"
-        # sock.send(bytearray.fromhex(val))
-        # XX -> 40 maxes out, 3f is like 60%, 3e is like 20%, 3d is like 5%, 3c is like 2%
-        # YYYY -> gets within the range of each of the XX's, so looks like:
-        #   XXYYYY together represents the range
-        # int range seems to be 3932160 - 4194304
-
-        # POWER
-        # 2f5379594f5469586a51426a570000002c6969000000000100000000
-        # 2f5379594f5469586a51426a570000002c6969000000000X00000000
-        # X -> 1 for on, 0 for off
-        # off
-        # val = "2f5379594f5469586a51426a570000002c6969000000000000000000"
-        # sock.send(bytearray.fromhex(val))
-        # time.sleep(2)
-        # # on
-        # val = "2f5379594f5469586a51426a570000002c6969000000000100000000"
-        # sock.send(bytearray.fromhex(val))
-
-        # BRIGHTNESS
-        # 2f557637614d46773550326c580000002c6669003ff0000000000000
-        # HUE
-        # 2f557637614d46773550326c580000002c666900
-        # SATURATION
-        # 2f7936383755345a67796d736a0000002c666900XXYYYY0000000000
-        # POWER
-        # 2f5379594f5469586a51426a570000002c6969000000000100000000
     finally:
         # Close the socket
         sock.close()
