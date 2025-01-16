@@ -20,7 +20,8 @@ control_choice_dict = {"a": "Brightness",
                        "b": "Hue",
                        "c": "Saturation",
                        "d": "Power",
-                       "e": "Mode"
+                       "e": "Mode",
+                       "q": "Quit"
                        }
 
 control_hex_dict = {"Brightness": "2f557637614d46773550326c580000002c666900",
@@ -78,31 +79,37 @@ def send_bytes(ip_address, port):
             return ((value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
 
         while True:
-            value_to_control_choice = input("Enter control (a) brightness, (b) hue, (c) saturation (d) power (e) mode: ")
+            value_to_control_choice = input("\nEnter control (a) brightness, (b) hue, (c) saturation (d) power (e) mode (q) quit: \n")
             if value_to_control_choice in control_choice_dict:
                 value_to_control = control_choice_dict[value_to_control_choice]
                 if "Mode" in value_to_control:
-                    auto_or_manual = input("(a) auto, (s) scene, or (m) manual")
+                    auto_or_manual = input("\n(a) auto, (s) scene, or (m) manual\n")
                     if "m" in auto_or_manual:
                         sock.send(bytearray.fromhex(modes_presend))
                         time.sleep(1)
                         sock.send(bytearray.fromhex(modes_dict["manual"]))
                     elif "s" in auto_or_manual:
                         sock.send(bytearray.fromhex(modes_dict["scene"]))
+                        time.sleep(1)
+                        scene_index = input("\nScene Index (0-4): \n")
+                        message = f"2f457055775a41314753506a4f0000002c6969000000000{scene_index}00000000"
+                        sock.send(bytearray.fromhex(message))
                     else:
                         sock.send(bytearray.fromhex(modes_presend))
                         time.sleep(1)
                         sock.send(bytearray.fromhex(modes_dict["auto"]))
                 elif "Power" in value_to_control:
                     chosen_hex = control_hex_dict[value_to_control]
-                    on_or_off = input("on or off?")
+                    on_or_off = input("\non or off?\n")
                     concat_hex = chosen_hex
                     concat_hex += "1" if on_or_off == "on" else "0"
                     concat_hex += "00000000"
                     sock.send(bytearray.fromhex(concat_hex))
+                elif "Quit" in value_to_control:
+                    break
                 else:
                     chosen_hex = control_hex_dict[value_to_control]
-                    percentage_entered = input("percentage: ")
+                    percentage_entered = input("\npercentage: \n")
                     try:
                         percentage_entered = int(percentage_entered)
                         if not (1 <= percentage_entered <= 100):
