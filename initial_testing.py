@@ -1,5 +1,6 @@
 import time
 import socket
+from subprocess import Popen, PIPE
 
 color_dict = {"red": "0x3f578e",
               "orange": "0x3f5a4f",
@@ -13,6 +14,13 @@ modes_dict = {"manual": "2f697761614d6b567a4f66554d0000002c696900000000020000000
               "scene": "2f697761614d6b567a4f66554d0000002c6969000000000100000000",
               "auto": "2f697761614d6b567a4f66554d0000002c6969000000000000000000"}
 modes_presend = "2f666c756f7261446973636f76657279000000002c6969696969696969696969696900000000003100000039000000320000002e0000003100000036000000380000002e00000038000000360000002e0000003200000030"
+
+scene_index_dict = {"0": "Party",
+                    "1": "Chill",
+                    "2": "Focus",
+                    "3": "Bedtime",
+                    "4": "Awaken"
+                    }
 
 # ignores commands from manual when on auto, so need to figure out how to switch
 
@@ -92,8 +100,11 @@ def send_bytes(ip_address, port):
                         sock.send(bytearray.fromhex(modes_dict["scene"]))
                         time.sleep(1)
                         scene_index = input("\nScene Index (0-4): \n")
-                        message = f"2f457055775a41314753506a4f0000002c6969000000000{scene_index}00000000"
-                        sock.send(bytearray.fromhex(message))
+                        if not (0 <= int(scene_index) <= 4):
+                            print("\nINPUT REQUIRES RANGE 0-4")
+                        else:
+                            message = f"2f457055775a41314753506a4f0000002c6969000000000{scene_index}00000000"
+                            sock.send(bytearray.fromhex(message))
                     else:
                         sock.send(bytearray.fromhex(modes_presend))
                         time.sleep(1)
@@ -130,10 +141,26 @@ def send_bytes(ip_address, port):
         # Close the socket
         sock.close()
 
+def get_ip_address_from_arp():
+    pid = Popen(["arp", "-a"], stdout=PIPE)
+    arp_response = pid.communicate()[0]
+
+    hostname = ""
+    for address in str(arp_response).split('\\n'):
+        if "esp" in address:
+            hostname = address.split(" ")[0]
+
+    if hostname == "":
+        raise Exception(f"expected name for fluora not found in list: {str(arp_response)}")
+    resolved_ip = socket.gethostbyname(hostname)  # working
+
+    return resolved_ip
 
 # Example usage
 if __name__ == "__main__":
-    ip_address = "192.168.86.29"  # Replace with the desired IP address
-    port = 6767  # Replace with the desired port
+    ip_address = get_ip_address_from_arp()
+
+    #ip_address = "192.168.86.29"  # Replace with the desired IP address
+    port = 6767  # working port in my case
 
     send_bytes(ip_address, port)
