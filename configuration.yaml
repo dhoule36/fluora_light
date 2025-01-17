@@ -1,0 +1,16 @@
+default_config:
+
+frontend:
+  themes: !include_dir_merged_named themes
+
+automation: !include automations.yaml
+script: !include script.yaml
+scene: !include scene.yaml
+
+light:
+  - platform: fluora_light
+    devices:
+      my_fluora_light:
+        name: Fluora Light
+        hostname: esp32-061b40.lan
+        port: 6767
