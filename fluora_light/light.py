@@ -1,11 +1,7 @@
 from typing import Any
 
-import voluptuous as vol
-
-import homeassistant.helpers.config_validation as cv
 from homeassistant.components.light import (ATTR_BRIGHTNESS, PLATFORM_SCHEMA,
-                                            LightEntity, LightEntityFeature, LightEntityDescription, ATTR_HS_COLOR, SUPPORT_BRIGHTNESS, SUPPORT_COLOR, SUPPORT_EFFECT, ATTR_EFFECT)
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, CONF_IP_ADDRESS, CONF_DEVICES
+                                            LightEntity, LightEntityFeature, LightEntityDescription, SUPPORT_BRIGHTNESS, SUPPORT_COLOR, SUPPORT_EFFECT, ATTR_EFFECT, ColorMode)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant import config_entries
@@ -29,23 +25,22 @@ async def async_setup_entry(
     async_add_entities([FluoraLightEntity(hass.data[DOMAIN][config_entry.entry_id], light_description)], True)
 
 
-class FluoraLightEntity(LightEntity):
+class FluoraLightEntity(FluoraLightBaseEntity, LightEntity):
     """Representation of a Fluora Light."""
 
+    _attr_has_entity_name = True
+    _attr_color_mode = ColorMode.BRIGHTNESS
+    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_supported_features = LightEntityFeature.EFFECT
     def __init__(self, coordinator: LightCoordinator, description: LightEntityDescription) -> None:
         """Initialize a FluoraLight."""
+        super().__init__(coordinator, description)
         self.coordinator = coordinator
         self._attr_effect_list = EFFECT_LIST
 
     @property
     def brightness(self):
         return self.coordinator.state[LightState.BRIGHTNESS]
-
-    @property
-    def hs_color(self) -> tuple[int, int] | None:
-        """Return the rgb color value [int, int, int]."""
-        return self.coordinator.state[LightState.HS_COLOR]
 
     @property
     def effect(self) -> str | None:
@@ -63,10 +58,6 @@ class FluoraLightEntity(LightEntity):
             self.async_write_ha_state()
             await self.coordinator.async_update_state(LightState.POWER, True)
 
-        if ATTR_HS_COLOR in kwargs:
-            await self.coordinator.async_update_state(
-                LightState.HS_COLOR, kwargs[ATTR_HS_COLOR]
-            )
         if ATTR_BRIGHTNESS in kwargs:
             await self.coordinator.async_update_state(
                 LightState.BRIGHTNESS, kwargs[ATTR_BRIGHTNESS]

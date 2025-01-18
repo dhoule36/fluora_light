@@ -5,7 +5,6 @@ import socket
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_HS_COLOR,
     ATTR_EFFECT
 )
 from homeassistant.helpers import device_registry, event
@@ -27,8 +26,6 @@ class LightState(StrEnum):
     BRIGHTNESS = ATTR_BRIGHTNESS
     """power true or false"""
     POWER = "power"
-    """set the hue/state color"""
-    HS_COLOR = ATTR_HS_COLOR
     """set the effect"""
     EFFECT = ATTR_EFFECT
 
@@ -44,6 +41,7 @@ class LightCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, device_id, conf):
         self.name = conf[CONF_NAME]
+        self.device_name = self.name
         self.device_id = device_id
         self.hostname = conf[CONF_HOSTNAME]
         self.port = conf[CONF_PORT]
@@ -64,9 +62,9 @@ class LightCoordinator(DataUpdateCoordinator):
 
         # Initialize state in case of new integration
         self.data = dict()
-        self.data[LightState.BRIGHTNESS] = 100
+        # init to 255 since that's HA's representation of it
+        self.data[LightState.BRIGHTNESS] = 255
         self.data[LightState.POWER] = True
-        self.data[LightState.HS_COLOR] = (0, 100)
         self.data[LightState.EFFECT] = EFFECT_AUTO
 
     def _set_poll_mode(self, fast: bool):
@@ -101,6 +99,13 @@ class LightCoordinator(DataUpdateCoordinator):
             self.light_socket.settimeout(None)
             self._initialized = True
 
+            reg = device_registry.async_get(self.hass)
+            reg.async_update_device(
+                self.hostname,
+                name=self.name,
+                manufacturer="Fluora",
+                hw_version="1",
+            )
         except Exception as e:
             LOGGER.warning("Failed to initialize %s: %s", self.ip_address, str(e))
 
@@ -127,7 +132,8 @@ class LightCoordinator(DataUpdateCoordinator):
 
         # Write data back
         if key == LightState.BRIGHTNESS:
-            desired_brightness = int(value)
+            # convert brightness from HA's 0-255 interpretation to our 0-100
+            desired_brightness = round(value * 100 / 255)
             brightness_hex = calculate_brightness_hex(desired_brightness)
             self.light_socket.send(bytearray.fromhex(BRIGHTNESS_HEX_FIRST + hex(int(brightness_hex))[2:] + BRIGHTNESS_HEX_LAST))
             LOGGER.info(f"Setting Brightness {desired_brightness}")

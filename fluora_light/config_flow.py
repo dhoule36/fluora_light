@@ -1,9 +1,7 @@
 """Config flow for wiz_light."""
-import logging
 
 import voluptuous as vol
 
-from homeassistant.core import callback
 from homeassistant import config_entries
 
 from .const import *

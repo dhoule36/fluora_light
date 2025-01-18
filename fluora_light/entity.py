@@ -13,7 +13,7 @@ class FluoraLightBaseEntity(CoordinatorEntity[LightCoordinator]):
         super().__init__(coordinator)
 
         self._attr_name = f"{self.coordinator.name} {description.name}"
-        self._attr_unique_id = f"{self.coordinator.hostname}-{self.name}"
+        self._attr_unique_id = f"{self.coordinator.hostname}-{self.coordinator.name}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self.coordinator.hostname)},
         }
