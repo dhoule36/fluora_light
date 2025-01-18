@@ -99,6 +99,15 @@ class LightCoordinator(DataUpdateCoordinator):
             self.light_socket.settimeout(None)
             self._initialized = True
 
+            # set mode to auto when initializing
+            self.light_socket.send(bytearray.fromhex(AUTO_HEX))
+            self.state[LightState.EFFECT] = EFFECT_AUTO
+
+            LOGGER.info("async_update_state: %s - %s", LightState.EFFECT, EFFECT_AUTO)
+
+            self.async_set_updated_data(self.state)
+            self._set_poll_mode(fast=True)
+
             reg = device_registry.async_get(self.hass)
             reg.async_update_device(
                 self.hostname,
