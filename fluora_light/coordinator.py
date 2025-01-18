@@ -67,7 +67,7 @@ class LightCoordinator(DataUpdateCoordinator):
         self.data[LightState.BRIGHTNESS] = 100
         self.data[LightState.POWER] = True
         self.data[LightState.HS_COLOR] = (0, 100)
-        self.data[LightState.EFFECT] = EFFECT_NO_EFFECT
+        self.data[LightState.EFFECT] = EFFECT_AUTO
 
     def _set_poll_mode(self, fast: bool):
         self._fast_poll_count = 0 if fast else -1
@@ -131,16 +131,32 @@ class LightCoordinator(DataUpdateCoordinator):
             brightness_hex = calculate_brightness_hex(desired_brightness)
             self.light_socket.send(bytearray.fromhex(BRIGHTNESS_HEX_FIRST + hex(int(brightness_hex))[2:] + BRIGHTNESS_HEX_LAST))
             LOGGER.info(f"Setting Brightness {desired_brightness}")
-        elif key == LightState.HS_COLOR:
-            desired_hue, desired_saturation = value
-            self.light_socket.send(bytearray.fromhex(MANUAL_HEX))
-            LOGGER.info(f"Setting hue: {desired_hue}, saturation: {desired_saturation}")
-            self.state[LightState.EFFECT] = EFFECT_NO_EFFECT
+        # compiled all color, scene, and mode changing into the EFFECT to make it easier
         elif key == LightState.EFFECT:
-            self.light_socket.send(bytearray.fromhex(SCENE_HEX))
-            await asyncio.sleep(0.1)
-            self.light_socket.send(bytearray.fromhex(SCENE_HEX_DICT[value]))
-            LOGGER.info(f"Setting SCENE: {value}")
+            # check if it is a scene effect. If so, set the mode to scene and then set the specific scene
+            if value in SCENE_EFFECTS:
+                self.light_socket.send(bytearray.fromhex(SCENE_HEX))
+                await asyncio.sleep(0.1)
+                self.light_socket.send(bytearray.fromhex(SCENE_HEX_DICT[value]))
+                LOGGER.info(f"Setting SCENE: {value}")
+            # check if it is 'auto' effect, and then change to auto mode
+            elif value == EFFECT_AUTO:
+                self.light_socket.send(bytearray.fromhex(AUTO_HEX))
+                LOGGER.info(f"Setting MODE: {value}")
+            # if "White" is chosen, we need to set the saturation to 0, but don't need to change colors, also set to manual mode
+            elif value == EFFECT_WHITE:
+                self.light_socket.send(bytearray.fromhex(MANUAL_HEX))
+                await asyncio.sleep(0.1)
+                self.light_socket.send(bytearray.fromhex(MIN_SATURATION_HEX))
+                LOGGER.info(f"Setting light to white")
+            # finally check for color effects, where we need to set manual mode, set saturation to 100 and then set color
+            elif value in COLOR_EFFECTS:
+                self.light_socket.send(bytearray.fromhex(MANUAL_HEX))
+                await asyncio.sleep(0.1)
+                self.light_socket.send(bytearray.fromhex(MAX_SATURATION_HEX))
+                await asyncio.sleep(0.1)
+                self.light_socket.send(bytearray.fromhex(SCENE_HEX_DICT[value]))
+                LOGGER.info(f"Setting color: {value}")
         elif key == LightState.POWER:
             if value:
                 self.light_socket.send(bytearray.fromhex(POWER_ON_HEX))
