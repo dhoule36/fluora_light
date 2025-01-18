@@ -1,0 +1,78 @@
+{
+	"title": "Fluora Light",
+    "config": {
+        "step": {
+            "add_device": {
+				"title": "Fluora Light: Add device",
+                "description": "Enter your device details.",
+                "data": {
+                    "name": "Name of device",
+                    "hostname": "Hostname of the fluora light (arp -a)",
+                    "port": "Port of the fluora light commands [default 6767]"
+                }
+            }
+        },
+		"error": {
+			"cannot_connect": "Failed to connect"
+		},
+		"abort": {
+            "add_success": "Device {dev_name} successfully added",
+			"already_configured": "Integration already exists",
+            "device_already_configured": "Device {dev_name} is already configured"
+		}
+    },
+    "options": {
+        "step": {
+            "init": {
+				"title": "Fluora Light Configuration",
+                "description": "Please select the desired action."
+            },
+            "add_device": {
+				"title": "Fluora Light: Add device",
+                "description": "Enter your device details.",
+                "data": {
+                    "name": "Name of device",
+                    "hostname": "Hostname of the fluora light (arp -a)",
+                    "port": "Port of the fluora light commands [default 6767]"
+                }
+            },
+            "edit_device": {
+				"title": "Fluora Light: Edit device",
+                "description": "Enter new device details for {dev_name}",
+                "data": {
+                    "name": "Name of device",
+                    "hostname": "Hostname of the fluora light (arp -a)",
+                    "port": "Port of the fluora light commands [default 6767]"
+                }
+            },
+            "remove_device": {
+                "title": "Fluora Light: Remove device",
+                "description": "Select device to remove.",
+                "data": {}
+            },
+            "select_edit_device": {
+				"title": "Fluora Light: Edit Device",
+                "description": "Select device to edit.",
+                "data": {}
+            }
+        },
+		"error": {
+			"cannot_connect": "Failed to connect"
+		},
+		"abort": {
+            "add_success": "Device {dev_name} successfully added",
+			"already_configured": "Device {dev_name} is already configured",
+            "edit_success": "Device {dev_name} edited",
+            "remove_success": "Device {dev_name} removed"
+		}
+    },
+    "selector": {
+        "action": {
+            "options": {
+                "add_device": "Add device",
+                "edit_device": "Edit device",
+                "remove_device": "Remove device"
+            }
+        }
+    }
+}
